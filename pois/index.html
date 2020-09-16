@@ -1,0 +1,169 @@
+<script>
+    function readTextFile(file, callback) {
+        var rawFile = new XMLHttpRequest();
+        rawFile.overrideMimeType("application/json");
+        rawFile.open("GET", file, true);
+        rawFile.onreadystatechange = function () {
+            if (rawFile.readyState === 4 && rawFile.status == "200") {
+                callback(rawFile.responseText);
+            }
+        }
+        rawFile.send(null);
+    }
+
+    //usage:
+
+    let updLoc = function () {
+        navigator.geolocation.getCurrentPosition(
+            function (pos) {
+                document.getElementById('lat').value = pos.coords.latitude;
+                document.getElementById('lon').value = pos.coords.longitude;
+                window.setTimeout(updLoc, 5000)
+            },
+            (e) => console.log(e));
+    }
+
+    var data;
+
+    function isTitleMatch(title, reqs) {
+        let ttl = title.toLowerCase();
+
+        for (let i = 0; i < reqs.length; i++) {
+            if (ttl.indexOf(reqs[i]) < 0) return false;
+        }
+
+        return true;
+    }
+
+    function isObjectMatch(obj, reqs) {
+
+
+        for (let i = 0; i < obj.names.length; i++) {
+            if (isTitleMatch(obj.names[i], reqs)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+        var R = 6371; // Radius of the earth in km
+        var dLat = deg2rad(lat2 - lat1);  // deg2rad below
+        var dLon = deg2rad(lon2 - lon1);
+        var a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        ;
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        var d = R * c; // Distance in km
+        return d * 1000;
+    }
+
+    function deg2rad(deg) {
+        return deg * (Math.PI / 180)
+    }
+
+    function search(string, lat, lon) {
+        let reqs = document.getElementById("search").value.toLowerCase().split(" ");
+        let found = 0;
+        let result = [];
+
+        for (let i = 0; i < data.length; i++) {
+            let match = isObjectMatch(data[i], reqs);
+            if (match >= 0) {
+                let coords = data[i].coords;
+                let minDistance = Infinity;
+                let foundCoords = {lat: 0, lon: 0};
+                for (let j = 0; j < coords.length; j++) {
+                    let dst = getDistanceFromLatLonInKm(coords[j].lat, coords[j].lon, lat, lon)
+                    if (dst < minDistance) {
+                        foundCoords = coords[j];
+                        minDistance = dst;
+                    }
+                }
+                result.push({
+                    title: data[i].names[match],
+                    dist: minDistance,
+                    allCoords: coords,
+                    coords: foundCoords
+                });
+            }
+        }
+
+        result.sort((a, b) => a.dist - b.dist);
+        if (result.length > 0) {
+            console.log(result[0]);
+        }
+        return result.slice(0, 50);
+    }
+
+    function doSearch() {
+        let searchResult = search(
+            document.getElementById("search").value,
+            parseFloat(document.getElementById("lat").value),
+            parseFloat(document.getElementById("lon").value)
+        )
+        let res = document.getElementById("result");
+        res.innerHTML = "";
+        for (let i = 0; i < searchResult.length; i++) {
+            let r = searchResult[i];
+            res.innerHTML +=
+                ("<a target=\"_blank\" href=\"https://www.google.com/maps/search/" + r.coords.lat + "," + r.coords.lon + "\">" +
+                    "<span class=\"title\">" + r.title + "</span> – " + Math.round(r.dist) +
+                    " м. " +
+                    //        "<span class=\"coords\">(" + r.coords.lat + ", " + r.coords.lon + ")</span>" +
+
+                    "</a>");
+        }
+    }
+
+
+    function onLoad() {
+        console.log('test');
+        readTextFile("data.json", function (text) {
+            data = Object.values(JSON.parse(text));
+        });
+
+        updLoc();
+    }
+
+
+</script>
+<head>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+          integrity="sha384-JcKb8q3iqJ61gNV9KGb8thSsNjpSL0n8PARn9HuZOnIxN0hoP+VmmDGMN5t9UJ0Z" crossorigin="anonymous">
+    <title>nearest pois</title>
+</head>
+<style>
+    body, input {
+        background: black;
+        color: #ddd;
+    }
+
+    input {
+        border: solid 1px grey;
+    }
+
+    #result a {
+        display: block;
+        margin: 3px;
+        color: #afd;
+    }
+
+    #result .coords {
+        color: #ccc;
+    }
+
+</style>
+
+<meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
+<body onload="onLoad();">
+Lat: <input id="lat" value="50.4491662"/><br/>
+Lon: <input id="lon" value="30.5055493"/><br/>
+<input id="search"
+       onchange="doSearch();" onkeyup="doSearch();"/>
+<div id="result">
+
+</div>
+</body>
