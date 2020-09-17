@@ -36,8 +36,6 @@
     }
 
     function isObjectMatch(obj, reqs) {
-
-
         for (let i = 0; i < obj.names.length; i++) {
             if (isTitleMatch(obj.names[i], reqs)) {
                 return i;
@@ -76,7 +74,7 @@
                 let minDistance = Infinity;
                 let foundCoords = {lat: 0, lon: 0};
                 for (let j = 0; j < coords.length; j++) {
-                    let dst = getDistanceFromLatLonInKm(coords[j].lat, coords[j].lon, lat, lon)
+                    let dst = getDistanceFromLatLonInKm(coords[j].lat, coords[j].lon, lat, lon);
                     if (dst < minDistance) {
                         foundCoords = coords[j];
                         minDistance = dst;
