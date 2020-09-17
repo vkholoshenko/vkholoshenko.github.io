@@ -48,6 +48,8 @@
     var db;
 
     function onLoad() {
+        updLoc();
+
         Promise.all([
             loadJson('points.json')
                 .then(x => data.points = x)
