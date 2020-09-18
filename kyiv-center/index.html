@@ -2,31 +2,43 @@
 
 <script>
 
-    function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
-        var R = 6371; // Radius of the earth in km
-        var dLat = deg2rad(lat2 - lat1);  // deg2rad below
-        var dLon = deg2rad(lon2 - lon1);
-        var a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        ;
-        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        var d = R * c; // Distance in km
-        return d * 1000;
-    }
+    const getDistanceFromLatLonInKm = (() => {
+        const deg2rad = function deg2rad(deg) {
+            return deg * (Math.PI / 180)
+        };
 
-    function deg2rad(deg) {
-        return deg * (Math.PI / 180)
-    }
+        return function (lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radius of the earth in km
+            const dLat = deg2rad(lat2 - lat1);  // deg2rad below
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+            ;
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const d = R * c; // Distance in km
+            return d * 1000;
+        }
+    })();
 
-    let loadJson = function (filename) {
+
+    const loadJson = function (filename) {
         return new Promise(((resolve) => {
-            var rawFile = new XMLHttpRequest();
+            const statusEl = document.createElement('div');
+            const statusLine = document.getElementById('status');
+
+            statusLine.appendChild(statusEl);
+
+            let rawFile = new XMLHttpRequest();
             rawFile.overrideMimeType("application/json");
             rawFile.open("GET", filename, true);
-            rawFile.onreadystatechange = function () {
-                if (rawFile.readyState === 4 && rawFile.status == "200") {
+            rawFile.onreadystatechange = () => {
+                if (rawFile.readyState !== XMLHttpRequest.DONE) {
+                    const kbs = Math.round(rawFile.responseText.length / 1024);
+                    statusEl.innerText = `Loading ${filename}... ${kbs} KB`;
+                } else if (rawFile.status == "200") {
+                    statusLine.removeChild(statusEl);
                     resolve(JSON.parse(rawFile.responseText));
                 }
             };
@@ -34,30 +46,15 @@
         }));
     };
 
-    let updLoc = function () {
-        navigator.geolocation.getCurrentPosition(
-            function (pos) {
-                document.getElementById('lat').value = pos.coords.latitude;
-                document.getElementById('lon').value = pos.coords.longitude;
-                window.setTimeout(updLoc, 5000)
-            },
-            (e) => console.log(e));
+    const updLoc = function () {
+        navigator.geolocation.getCurrentPosition((position => {
+            document.getElementById('lat').value = position.coords.latitude;
+            document.getElementById('lon').value = position.coords.longitude;
+        }));
     };
 
     var data = {};
     var db;
-
-    function onLoad() {
-        updLoc();
-
-        Promise.all([
-            loadJson('points.json')
-                .then(x => data.points = x)
-                .then(() => db = new KDBush(data.points)),
-            loadJson('ids.json').then(x => data.ids = x),
-            loadJson('objects.json').then(x => data.objects = x)])
-            .then(() => document.getElementById('search').disabled = false);
-    }
 
     function getObjects(lat, lon, count) {
         let nearestpoints = [];
@@ -144,6 +141,19 @@
                     `<span class="title">${r.title}</span> – ${iDist} м.</a>`);
         }
     }
+
+    function onLoad() {
+        updLoc();
+        setInterval(updLoc, 5000);
+
+        Promise.all([
+            loadJson('points.json')
+                .then(x => data.points = x)
+                .then(() => db = new KDBush(data.points)),
+            loadJson('ids.json').then(x => data.ids = x),
+            loadJson('objects.json').then(x => data.objects = x)])
+            .then(() => document.getElementById('search').disabled = false);
+    }
 </script>
 
 
@@ -172,6 +182,12 @@
         color: #ccc;
     }
 
+    #status {
+        position: fixed;
+        bottom: 0;
+        width: 100%;
+    }
+
 </style>
 
 <meta name='viewport' content='initial-scale=1, viewport-fit=cover'>
@@ -183,4 +199,5 @@
 <div id="result">
 
 </div>
+<div id="status"></div>
 </body>
