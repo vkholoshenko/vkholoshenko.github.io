@@ -22,7 +22,46 @@
         }
     })();
 
-    const loadJson = filename => fetch(filename).then(response => response.json());
+    const loadJson = async function (filename) {
+        const statusEl = document.createElement('div');
+        const statusLine = document.getElementById('status');
+        statusLine.appendChild(statusEl);
+
+        let response = await fetch(filename);
+        const reader = response.body.getReader();
+        const totalK = Math.round(response.headers.get('Content-Length') / 1024);
+        let receivedLength = 0;
+
+        let chunks = [];
+        while (true) {
+            const {done, value} = await reader.read();
+
+            if (done) {
+                break;
+            }
+
+            chunks.push(value);
+            receivedLength += value.length;
+
+            const recvK = Math.round(receivedLength / 1024);
+
+            statusEl.innerText = `Loading ${filename}... ${recvK} KB / ${totalK} KB`;
+        }
+
+        statusLine.removeChild(statusEl);
+
+
+        let chunksAll = new Uint8Array(receivedLength); // (4.1)
+        let position = 0;
+        for (let chunk of chunks) {
+            chunksAll.set(chunk, position); // (4.2)
+            position += chunk.length;
+        }
+
+        let result = new TextDecoder("utf-8").decode(chunksAll);
+
+        return JSON.parse(result);
+    };
 
     const updLoc = function () {
         navigator.geolocation.getCurrentPosition((position => {
