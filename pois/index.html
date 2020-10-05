@@ -1,7 +1,6 @@
 <script src="https://unpkg.com/kdbush@3.0.0/kdbush.min.js"></script>
 
 <script>
-
     const getDistanceFromLatLonInKm = (() => {
         const deg2rad = function deg2rad(deg) {
             return deg * (Math.PI / 180)
@@ -159,17 +158,28 @@
         }
     }
 
+    function loadData(prefix) {
+        if (prefix === "") {
+            prefix = "kyiv-center";
+        }
+        document.getElementById('search').disabled = true;
+
+        Promise.all([
+            loadJson(`data/${prefix}/points.json`)
+                .then(x => data.points = x)
+                .then(() => db = new KDBush(data.points)),
+            loadJson(`data/${prefix}/ids.json`).then(x => data.ids = x),
+            loadJson(`data/${prefix}/objects.json`).then(x => data.objects = x)])
+            .catch(() => window.location.hash = "")
+            .then(() => document.getElementById('search').disabled = false);
+    }
+
     function onLoad() {
         updLoc();
         setInterval(updLoc, 5000);
+        loadData(window.location.hash.substring(1));
 
-        Promise.all([
-            loadJson('points.json')
-                .then(x => data.points = x)
-                .then(() => db = new KDBush(data.points)),
-            loadJson('ids.json').then(x => data.ids = x),
-            loadJson('objects.json').then(x => data.objects = x)])
-            .then(() => document.getElementById('search').disabled = false);
+        window.onhashchange = () => loadData(window.location.hash.substring(1));
     }
 </script>
 
@@ -212,7 +222,7 @@
 <label for="lat">Lat:</label> <input id="lat" value="50.4491662"/><br/>
 <label for="lon">Lon:</label> <input id="lon" value="30.5055493"/><br/>
 <input id="search"
-       onchange="doSearch();" onkeyup="doSearch();" disabled/>
+       onchange="doSearch();" onkeyup="doSearch();" />
 <div id="result">
 
 </div>
