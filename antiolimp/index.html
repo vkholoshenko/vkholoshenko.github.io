@@ -24,7 +24,7 @@
         }
 
         function load(word) {
-            return fetch('https://europe-west3-ascendant-hub-292112.cloudfunctions.net/function-1?q=' + word).then(resp => resp.text()).then(resp => JSON.parse(resp));
+            return fetch('https://vvkh.asuscomm.com/sociation?q=' + word).then(resp => resp.text()).then(resp => JSON.parse(resp));
         }
 
         function submit(event) {
