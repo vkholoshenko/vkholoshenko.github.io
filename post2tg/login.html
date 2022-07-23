@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Facebook getLoginStatus Example</title>
+  <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+</head>
+<body>
+<div id='fb-root'></div>
+<script src="https://connect.facebook.net/en_US/all.js"></script>
+<script>
+  $(function(){
+    FB.init({ apiKey: '747917076261742', status: true });
+
+    FB.getLoginStatus(function(response) {
+      if (response.status === 'connected') {
+        console.log(response);
+      } else if (response.status === 'not_authorized') {
+        console.log('not connected to app');
+      } else {
+        console.log('not logged in to fb');
+        FB.login(response => {
+          console.log(response);
+        })
+      }
+    });
+  });
+</script>
+</body>
+</html>
